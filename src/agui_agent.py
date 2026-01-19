@@ -193,3 +193,37 @@ def agui_stream_sync(query: str):
             message=str(e),
             code="AGENT_ERROR",
         )
+
+
+# ============================================================================
+# LangGraph Agent Factory
+# ============================================================================
+
+def get_langgraph_agent():
+    """
+    Get a configured LangGraph agent for direct invocation.
+    
+    Returns:
+        A LangGraph ReAct agent configured with research tools.
+    """
+    from langchain_openai import ChatOpenAI
+    from langgraph.prebuilt import create_react_agent
+    from src.config import get_settings
+    from src.tools import get_available_tools
+    from src.prompts import get_system_prompt
+    
+    settings = get_settings()
+    
+    llm = ChatOpenAI(
+        model=settings.openai_model,
+        temperature=settings.openai_temperature,
+        api_key=settings.openai_api_key,
+    )
+    
+    tools = get_available_tools()
+    
+    return create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=get_system_prompt(),
+    )
