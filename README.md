@@ -195,14 +195,16 @@ The agent automatically uses available providers. Configure Tavily for best resu
 
 ## API Reference
 
-### REST Endpoints
+### REST Endpoints (api_agui.py)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | GET | API info and available endpoints |
 | `/health` | GET | Health check with configuration status |
-| `/research` | POST | Execute research query |
-| `/research/stream` | POST | Streaming research with AG-UI events |
+| `/research` | POST | Execute research query (JSON response) |
+| `/research/stream` | POST | Streaming research with SSE events |
+| `/agui` | POST | AG-UI Protocol streaming endpoint |
+| `/langgraph` | POST | LangGraph agent endpoint |
 | `/docs` | GET | Interactive Swagger documentation |
 
 ### POST /research
