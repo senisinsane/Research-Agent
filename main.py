@@ -97,10 +97,10 @@ def main() -> int:
     args = parse_arguments()
 
     # Import after dotenv to ensure environment is loaded
-    from src.config import get_settings
-    from src.logging_config import setup_logging
     from src.agent import create_agent
-    from src.exceptions import ResearchAgentError, ConfigurationError
+    from src.config import get_settings
+    from src.exceptions import ConfigurationError, ResearchAgentError
+    from src.logging_config import setup_logging
 
     # Setup logging
     try:

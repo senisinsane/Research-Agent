@@ -7,7 +7,7 @@ Tavily is optimized for AI agents and provides high-quality search results.
 from langchain_core.tools import tool
 
 from src.config import get_settings
-from src.exceptions import SearchError, SearchProviderUnavailableError
+from src.exceptions import SearchProviderUnavailableError
 from src.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -16,13 +16,13 @@ logger = get_logger(__name__)
 def _get_tavily_client():
     """Get configured Tavily client."""
     settings = get_settings()
-    
+
     if not settings.has_tavily:
         raise SearchProviderUnavailableError(
             "Tavily API key not configured",
             provider="tavily",
         )
-    
+
     try:
         from tavily import TavilyClient
         return TavilyClient(api_key=settings.tavily_api_key)

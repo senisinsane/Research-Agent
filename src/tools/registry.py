@@ -4,7 +4,7 @@ Tool registry for managing available search tools.
 Provides functions to get available tools based on configuration.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from src.config import get_settings
 from src.logging_config import get_logger

@@ -15,7 +15,7 @@ def get_current_date_context() -> str:
 - **Current Year**: {now.year}
 - **Current Month**: {now.strftime("%B %Y")}
 
-When searching for information, ALWAYS use the current year ({now.year}) in your queries. 
+When searching for information, ALWAYS use the current year ({now.year}) in your queries.
 Do NOT use outdated years like 2023 or 2024. Search for the most recent data available."""
 
 

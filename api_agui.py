@@ -9,24 +9,24 @@ Docs: https://docs.copilotkit.ai/
 """
 
 import sys
-from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Optional
+from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
-import uvicorn
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from src.config import get_settings
-from src.logging_config import setup_logging, get_logger
+from src.logging_config import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -73,8 +73,8 @@ class AGUIMessage(BaseModel):
 class AGUIRequest(BaseModel):
     """AG-UI protocol request."""
     messages: list[AGUIMessage]
-    threadId: Optional[str] = None
-    runId: Optional[str] = None
+    threadId: str | None = None
+    runId: str | None = None
 
 
 class ResearchRequest(BaseModel):
@@ -120,10 +120,10 @@ async def health():
 async def agui_endpoint(request: Request):
     """
     AG-UI Protocol endpoint for streaming agent responses.
-    
+
     This endpoint implements the AG-UI event protocol for real-time
     streaming of agent responses to frontend applications.
-    
+
     Events emitted:
     - RUN_STARTED
     - TEXT_MESSAGE_START
@@ -134,24 +134,24 @@ async def agui_endpoint(request: Request):
     try:
         body = await request.json()
         messages = body.get("messages", [])
-        
+
         if not messages:
             raise HTTPException(status_code=400, detail="No messages provided")
-        
+
         # Get the last user message as the query
         query = None
         for msg in reversed(messages):
             if msg.get("role") == "user":
                 query = msg.get("content")
                 break
-        
+
         if not query:
             raise HTTPException(status_code=400, detail="No user message found")
-        
+
         logger.info(f"AG-UI request: {query[:100]}...")
-        
+
         from src.agui_agent import agui_stream_generator
-        
+
         return StreamingResponse(
             agui_stream_generator(query),
             media_type="text/event-stream",
@@ -161,40 +161,40 @@ async def agui_endpoint(request: Request):
                 "X-Accel-Buffering": "no",
             }
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.exception(f"AG-UI error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/copilotkit")
 async def copilotkit_endpoint(request: Request):
     """
     CopilotKit-specific endpoint.
-    
+
     Compatible with CopilotKit's useCoAgent and useCopilotAction hooks.
     """
     try:
         body = await request.json()
-        
+
         # Handle CopilotKit action requests
         action = body.get("action")
         if action == "research":
             query = body.get("parameters", {}).get("query")
             if not query:
                 raise HTTPException(status_code=400, detail="Query required")
-            
+
             from src.agent import create_agent
             agent = create_agent()
             result = agent.research(query)
-            
+
             return JSONResponse({
                 "success": True,
                 "result": result.content,
             })
-        
+
         # Handle chat messages
         messages = body.get("messages", [])
         if messages:
@@ -203,21 +203,21 @@ async def copilotkit_endpoint(request: Request):
                 if msg.get("role") == "user":
                     query = msg.get("content")
                     break
-            
+
             if query:
                 from src.agui_agent import agui_stream_generator
                 return StreamingResponse(
                     agui_stream_generator(query),
                     media_type="text/event-stream",
                 )
-        
+
         raise HTTPException(status_code=400, detail="Invalid request format")
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.exception(f"CopilotKit error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/research")
@@ -227,21 +227,21 @@ async def research_endpoint(request: ResearchRequest):
     """
     try:
         from src.agent import create_agent
-        
+
         logger.info(f"Research request: {request.query[:100]}...")
-        
+
         agent = create_agent()
         result = agent.research(request.query)
-        
+
         return {
             "success": result.success,
             "query": result.query,
             "report": result.content,
         }
-        
+
     except Exception as e:
         logger.exception(f"Research error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/research/stream")
@@ -250,7 +250,7 @@ async def research_stream_endpoint(request: ResearchRequest):
     Streaming research endpoint using AG-UI events.
     """
     from src.agui_agent import agui_stream_generator
-    
+
     return StreamingResponse(
         agui_stream_generator(request.query),
         media_type="text/event-stream",
@@ -269,19 +269,20 @@ async def research_stream_endpoint(request: ResearchRequest):
 async def langgraph_endpoint(request: Request):
     """
     LangGraph agent endpoint for CopilotKit integration.
-    
+
     Uses the LangGraph-based agent with tool calling support.
     """
     try:
         body = await request.json()
         messages = body.get("messages", [])
-        
+
         if not messages:
             raise HTTPException(status_code=400, detail="No messages provided")
-        
+
+        from langchain_core.messages import AIMessage, HumanMessage
+
         from src.agui_agent import get_langgraph_agent
-        from langchain_core.messages import HumanMessage, AIMessage
-        
+
         # Convert messages to LangChain format
         lc_messages = []
         for msg in messages:
@@ -291,11 +292,11 @@ async def langgraph_endpoint(request: Request):
                 lc_messages.append(HumanMessage(content=content))
             elif role == "assistant":
                 lc_messages.append(AIMessage(content=content))
-        
+
         # Run the agent
         graph = get_langgraph_agent()
         result = graph.invoke({"messages": lc_messages})
-        
+
         # Extract final response
         final_messages = result.get("messages", [])
         response_content = ""
@@ -303,15 +304,15 @@ async def langgraph_endpoint(request: Request):
             if isinstance(msg, AIMessage) and msg.content:
                 response_content = msg.content
                 break
-        
+
         return {
             "role": "assistant",
             "content": response_content,
         }
-        
+
     except Exception as e:
         logger.exception(f"LangGraph error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ============================================================================

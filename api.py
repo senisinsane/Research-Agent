@@ -5,37 +5,37 @@ Provides HTTP endpoints for research queries with async support.
 """
 
 import sys
-from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Optional
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+import uvicorn
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-import uvicorn
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from src.config import get_settings
-from src.logging_config import setup_logging, get_logger
 from src.agent import ResearchAgent, create_agent
+from src.config import get_settings
 from src.exceptions import ResearchAgentError
+from src.logging_config import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
 # Global agent instance (initialized on startup)
-_agent: Optional[ResearchAgent] = None
+_agent: ResearchAgent | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize agent on startup, cleanup on shutdown."""
     global _agent
-    
+
     # Startup
     logger.info("Initializing Research Agent...")
     settings = get_settings()
@@ -43,9 +43,9 @@ async def lifespan(app: FastAPI):
     _agent = create_agent()
     logger.info(f"Agent initialized with model: {_agent.model}")
     logger.info(f"Available tools: {_agent.available_tools}")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Research Agent...")
     _agent = None
@@ -75,7 +75,7 @@ app.add_middleware(
 
 class ResearchRequest(BaseModel):
     """Request model for research queries."""
-    
+
     query: str = Field(
         ...,
         min_length=3,
@@ -83,7 +83,7 @@ class ResearchRequest(BaseModel):
         description="The research query to investigate",
         examples=["What are the latest trends in AI?"],
     )
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None,
         description="Override the default OpenAI model",
     )
@@ -91,16 +91,16 @@ class ResearchRequest(BaseModel):
 
 class ResearchResponse(BaseModel):
     """Response model for research results."""
-    
+
     success: bool = Field(description="Whether the research completed successfully")
     query: str = Field(description="The original query")
-    report: Optional[str] = Field(default=None, description="The research report")
-    error: Optional[str] = Field(default=None, description="Error message if failed")
+    report: str | None = Field(default=None, description="The research report")
+    error: str | None = Field(default=None, description="Error message if failed")
 
 
 class HealthResponse(BaseModel):
     """Response model for health check."""
-    
+
     status: str
     model: str
     tools: list[str]
@@ -126,7 +126,7 @@ async def health_check():
     """Check API health and agent status."""
     if _agent is None:
         raise HTTPException(status_code=503, detail="Agent not initialized")
-    
+
     return HealthResponse(
         status="healthy",
         model=_agent.model,
@@ -138,29 +138,29 @@ async def health_check():
 async def research(request: ResearchRequest):
     """
     Execute a research query and return a structured report.
-    
+
     This endpoint accepts a research question and returns a comprehensive
     report with findings, analysis, and sources.
     """
     if _agent is None:
         raise HTTPException(status_code=503, detail="Agent not initialized")
-    
+
     logger.info(f"Research request: {request.query[:100]}...")
-    
+
     try:
         # Use the global agent or create a new one with custom model
         agent = _agent
         if request.model and request.model != _agent.model:
             agent = create_agent(model=request.model)
-        
+
         result = agent.research(request.query)
-        
+
         return ResearchResponse(
             success=result.success,
             query=result.query,
             report=result.content,
         )
-        
+
     except ResearchAgentError as e:
         logger.error(f"Research error: {e}")
         return ResearchResponse(
@@ -170,30 +170,30 @@ async def research(request: ResearchRequest):
         )
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/research/async", response_model=ResearchResponse, tags=["Research"])
 async def research_async(request: ResearchRequest):
     """
     Execute a research query asynchronously.
-    
+
     Same as /research but uses async execution for better concurrency.
     """
     if _agent is None:
         raise HTTPException(status_code=503, detail="Agent not initialized")
-    
+
     logger.info(f"Async research request: {request.query[:100]}...")
-    
+
     try:
         result = await _agent.research_async(request.query)
-        
+
         return ResearchResponse(
             success=result.success,
             query=result.query,
             report=result.content,
         )
-        
+
     except ResearchAgentError as e:
         logger.error(f"Research error: {e}")
         return ResearchResponse(
@@ -203,7 +203,7 @@ async def research_async(request: ResearchRequest):
         )
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ============================================================================

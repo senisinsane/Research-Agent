@@ -5,7 +5,7 @@ Uses pydantic-settings for type-safe configuration with environment variable sup
 """
 
 from functools import lru_cache
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,11 +38,11 @@ class Settings(BaseSettings):
     )
 
     # Search Provider API Keys
-    tavily_api_key: Optional[str] = Field(
+    tavily_api_key: str | None = Field(
         default=None,
         description="Tavily API key for AI-optimized search",
     )
-    serpapi_api_key: Optional[str] = Field(
+    serpapi_api_key: str | None = Field(
         default=None,
         description="SerpAPI key for Google search results",
     )
@@ -96,10 +96,10 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """
     Get cached application settings.
-    
+
     Returns:
         Settings: Application configuration loaded from environment.
-    
+
     Raises:
         ValidationError: If required settings are missing or invalid.
     """

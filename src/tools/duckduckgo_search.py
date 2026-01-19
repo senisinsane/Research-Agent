@@ -27,11 +27,11 @@ def _get_ddgs_client():
         try:
             from duckduckgo_search import DDGS
             return DDGS()
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "DuckDuckGo search package not installed. "
                 "Run: pip install ddgs"
-            )
+            ) from e
 
 
 @tool

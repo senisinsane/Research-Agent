@@ -16,13 +16,13 @@ logger = get_logger(__name__)
 def _get_serpapi_params(query: str, max_results: int) -> dict:
     """Build SerpAPI request parameters."""
     settings = get_settings()
-    
+
     if not settings.has_serpapi:
         raise SearchProviderUnavailableError(
             "SerpAPI key not configured",
             provider="serpapi",
         )
-    
+
     return {
         "q": query,
         "api_key": settings.serpapi_api_key,

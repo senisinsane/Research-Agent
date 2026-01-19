@@ -64,6 +64,8 @@ include = ["src*"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+
+[tool.ruff.lint]
 select = [
     "E",      # pycodestyle errors
     "W",      # pycodestyle warnings
@@ -78,9 +80,11 @@ select = [
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
+    "E402",   # module level import not at top (needed for dotenv loading)
+    "ARG001", # unused function argument (needed for FastAPI lifespan)
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["src"]
 
 [tool.mypy]
