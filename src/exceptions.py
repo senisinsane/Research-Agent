@@ -42,11 +42,6 @@ class SearchProviderUnavailableError(SearchError):
     pass
 
 
-class SearchRateLimitError(SearchError):
-    """Raised when a search provider rate limits the request."""
-    pass
-
-
 class AgentExecutionError(ResearchAgentError):
     """Raised when the agent fails to execute a research query."""
 
@@ -57,11 +52,6 @@ class AgentExecutionError(ResearchAgentError):
         )
         self.query = query
         self.iterations = iterations
-
-
-class AgentTimeoutError(AgentExecutionError):
-    """Raised when the agent exceeds the maximum iteration limit."""
-    pass
 
 
 class EmptyResponseError(AgentExecutionError):

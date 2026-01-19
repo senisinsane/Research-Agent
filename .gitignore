@@ -52,6 +52,7 @@ Thumbs.db
 # Project specific
 output.txt
 research_output.txt
+prompt.txt
 *.log
 
 # Node.js (frontend)
@@ -60,6 +61,7 @@ frontend/.next/
 frontend/out/
 frontend/.env
 frontend/.env.local
+frontend/tsconfig.tsbuildinfo
 
 # Test/Coverage
 .coverage
