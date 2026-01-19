@@ -1,20 +1,19 @@
 # Web Research Agent 🔍
 
-A production-ready autonomous web research agent built with LangChain and OpenAI. This agent accepts natural language research queries, intelligently breaks them into sub-questions, searches the web for current information, and synthesizes findings into professional, structured reports.
+A production-ready autonomous web research agent built with LangChain, LangGraph, and OpenAI. This agent accepts natural language research queries, intelligently breaks them into sub-questions, searches the web for current information, and synthesizes findings into professional, structured reports.
 
 ## Features
 
 - 🤖 **Autonomous Research** - Automatically plans, searches, and synthesizes information
 - 🔎 **Multi-Provider Search** - Supports Tavily, SerpAPI, and DuckDuckGo
-- 📊 **Structured Reports** - Clean, professional output with sources
-- 🌐 **REST API** - FastAPI backend with streaming support
-- 🖥️ **React Frontend** - CopilotKit-powered chat interface
-- 📡 **AG-UI Protocol** - Standardized AI agent communication
-- 🐳 **Docker Ready** - Containerized deployment
+- 📊 **Structured Reports** - Clean, professional output with sources and citations
+- 🌐 **REST API** - FastAPI backend with async support
+- 🖥️ **React Frontend** - Modern chat interface with markdown rendering
+- 🐳 **Docker Ready** - Multi-stage containerized deployment
 - ☁️ **Cloud Deploy** - Railway, Render, and Fly.io configs included
 - 📅 **Real-time Date Aware** - Always searches with current date context
 - ⚙️ **Type-Safe Configuration** - Pydantic-based settings management
-- 🛡️ **Production-Ready** - Proper error handling, logging, and best practices
+- 🛡️ **Production-Ready** - Proper error handling, logging, and security best practices
 
 ## Architecture
 
@@ -26,7 +25,7 @@ A production-ready autonomous web research agent built with LangChain and OpenAI
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Research Agent                              │
+│                 LangGraph ReAct Agent                           │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    Planning Phase                         │  │
 │  │    • Analyze research goal                                │  │
@@ -70,47 +69,51 @@ web-research-agent/
 │   ├── exceptions.py         # Custom exception classes
 │   ├── logging_config.py     # Structured logging setup
 │   ├── prompts.py            # System prompts with real-time date
-│   ├── agent.py              # ResearchAgent class
-│   ├── agui_agent.py         # AG-UI Protocol agent
+│   ├── agent.py              # ResearchAgent class (LangGraph)
+│   ├── agui_agent.py         # AG-UI Protocol streaming agent
 │   └── tools/
 │       ├── __init__.py       # Tool exports
 │       ├── registry.py       # Tool registry and discovery
 │       ├── tavily_search.py  # Tavily search (primary)
-│       ├── serpapi_search.py # SerpAPI search
+│       ├── serpapi_search.py # SerpAPI Google search
 │       └── duckduckgo_search.py  # DuckDuckGo fallback
-├── frontend/                 # Next.js + CopilotKit UI
+├── frontend/                 # Next.js React UI
 │   ├── app/
-│   │   ├── page.tsx          # Main chat interface
+│   │   ├── page.tsx          # Chat interface component
 │   │   ├── layout.tsx        # Root layout
-│   │   ├── globals.css       # Global styles
-│   │   └── api/copilotkit/   # CopilotKit API route
+│   │   ├── globals.css       # Tailwind styles
+│   │   └── api/research/     # Research API proxy route
 │   ├── package.json
 │   └── tailwind.config.ts
 ├── main.py                   # CLI entry point
 ├── api.py                    # FastAPI REST API
 ├── api_agui.py               # AG-UI Protocol API server
-├── Dockerfile                # Container image
+├── Dockerfile                # Multi-stage container build
 ├── docker-compose.yml        # Local Docker setup
 ├── render.yaml               # Render deployment
 ├── railway.json              # Railway deployment
 ├── fly.toml                  # Fly.io deployment
 ├── Procfile                  # Process definition
 ├── DEPLOYMENT.md             # Deployment guide
-├── pyproject.toml            # Modern Python packaging
+├── pyproject.toml            # Python packaging & tooling config
 ├── requirements.txt          # Python dependencies
-├── requirements-api.txt      # API-specific dependencies
-├── .env.example              # Environment template
-└── README.md                 # Documentation
+└── requirements-api.txt      # API-specific dependencies
 ```
 
 ## Quick Start
+
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+ (for frontend)
+- OpenAI API key
 
 ### Option 1: CLI Usage
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/web-research-agent.git
-cd web-research-agent
+git clone https://github.com/senisinsane/Research-Agent.git
+cd Research-Agent
 
 # Create virtual environment
 python -m venv venv
@@ -142,7 +145,7 @@ curl -X POST http://localhost:8000/research \
   -d '{"query": "What is quantum computing?"}'
 ```
 
-### Option 3: Chat Frontend
+### Option 3: Full Stack (Frontend + Backend)
 
 ```bash
 # Terminal 1: Start the backend
@@ -174,20 +177,21 @@ docker-compose up --build
 | `OPENAI_API_KEY` | ✅ Yes | - | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` | Model to use |
 | `OPENAI_TEMPERATURE` | No | `0.0` | Response temperature |
-| `TAVILY_API_KEY` | ⭐ Recommended | - | Tavily API key ([free](https://tavily.com)) |
-| `SERPAPI_API_KEY` | No | - | SerpAPI key |
+| `TAVILY_API_KEY` | ⭐ Recommended | - | Tavily API key ([free tier](https://tavily.com)) |
+| `SERPAPI_API_KEY` | No | - | SerpAPI key for Google search |
 | `MAX_ITERATIONS` | No | `25` | Max agent iterations |
+| `SEARCH_MAX_RESULTS` | No | `5` | Results per search query |
 | `LOG_LEVEL` | No | `WARNING` | Logging level |
 
 ### Search Providers
 
 | Provider | API Key | Best For |
 |----------|---------|----------|
-| **Tavily** | Required | AI-optimized results (recommended, primary) |
+| **Tavily** | Required | AI-optimized results (recommended) |
 | **SerpAPI** | Required | Google search results |
-| **DuckDuckGo** | None | Free fallback |
+| **DuckDuckGo** | None | Free fallback (always available) |
 
-The agent prioritizes Tavily for best results. Configure at least Tavily for optimal performance.
+The agent automatically uses available providers. Configure Tavily for best results.
 
 ## API Reference
 
@@ -196,19 +200,17 @@ The agent prioritizes Tavily for best results. Configure at least Tavily for opt
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | GET | API info and available endpoints |
-| `/health` | GET | Health check |
-| `/research` | POST | Run research query |
-| `/agui` | POST | AG-UI Protocol streaming |
-| `/copilotkit` | POST | CopilotKit integration |
-| `/docs` | GET | Interactive API documentation |
+| `/health` | GET | Health check with configuration status |
+| `/research` | POST | Execute research query |
+| `/research/stream` | POST | Streaming research with AG-UI events |
+| `/docs` | GET | Interactive Swagger documentation |
 
 ### POST /research
 
+Request:
 ```json
 {
-  "query": "Your research question",
-  "model": "gpt-4o-mini",
-  "max_iterations": 25
+  "query": "Your research question"
 }
 ```
 
@@ -217,9 +219,7 @@ Response:
 {
   "success": true,
   "query": "Your research question",
-  "result": "# Research Summary\n\n## Objective\n...",
-  "model": "gpt-4o-mini",
-  "execution_time": 15.23
+  "report": "**Objective**: This report investigates...\n\n**Key Findings**:..."
 }
 ```
 
@@ -259,40 +259,14 @@ python main.py "Complex research topic" --max-iterations 40
 
 ## Output Format
 
-Reports follow this exact structure:
+Reports follow this structure:
 
 1. **Objective** - What was researched
 2. **Key Findings** - 3-5 critical discoveries
-3. **Detailed Analysis** - In-depth exploration
+3. **Detailed Analysis** - In-depth exploration with context
 4. **Pros & Cons** - Balanced assessment
 5. **Final Recommendation** - Evidence-based conclusion
 6. **Sources** - Cited references with URLs
-
-## Deployment
-
-### Quick Deploy Options
-
-| Platform | One-Click Deploy |
-|----------|------------------|
-| **Railway** | Configure with `railway.json` |
-| **Render** | Configure with `render.yaml` |
-| **Fly.io** | `flyctl launch` with `fly.toml` |
-| **Docker** | `docker-compose up --build` |
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
-
-### Docker Deployment
-
-```bash
-# Build image
-docker build -t web-research-agent .
-
-# Run container
-docker run -p 8000:8000 \
-  -e OPENAI_API_KEY=your_key \
-  -e TAVILY_API_KEY=your_key \
-  web-research-agent
-```
 
 ## Programmatic Usage
 
@@ -308,17 +282,31 @@ result = agent.research("What is quantum computing?")
 # Access result
 print(result.content)
 print(f"Success: {result.success}")
+print(f"Query: {result.query}")
+```
+
+### Async Usage
+
+```python
+import asyncio
+from src.agent import create_agent
+
+async def main():
+    agent = create_agent()
+    result = await agent.research_async("Latest AI news")
+    print(result.content)
+
+asyncio.run(main())
 ```
 
 ## Error Handling
-
-The agent handles various failure modes gracefully:
 
 ```python
 from src.exceptions import (
     ConfigurationError,
     AgentExecutionError,
     EmptyResponseError,
+    SearchProviderUnavailableError,
 )
 
 try:
@@ -328,7 +316,33 @@ except ConfigurationError as e:
 except AgentExecutionError as e:
     print(f"Agent error: {e}")
 except EmptyResponseError as e:
-    print(f"No response: {e}")
+    print(f"No response generated: {e}")
+```
+
+## Deployment
+
+### Quick Deploy Options
+
+| Platform | Configuration |
+|----------|---------------|
+| **Railway** | `railway.json` |
+| **Render** | `render.yaml` |
+| **Fly.io** | `fly.toml` |
+| **Docker** | `Dockerfile` + `docker-compose.yml` |
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
+### Docker Deployment
+
+```bash
+# Build image
+docker build -t research-agent .
+
+# Run container
+docker run -p 8000:8000 \
+  -e OPENAI_API_KEY=your_key \
+  -e TAVILY_API_KEY=your_key \
+  research-agent
 ```
 
 ## Development
@@ -342,33 +356,43 @@ pip install -e ".[dev]"
 ### Code Quality
 
 ```bash
+# Lint code
+ruff check .
+
 # Format code
 black src/ main.py api.py api_agui.py
-
-# Lint code
-ruff check src/ main.py
 
 # Type check
 mypy src/
 ```
 
-## Extending
+### Running Tests
 
-### Add a New Search Provider
+```bash
+# Run all tests
+pytest
+
+# With coverage
+pytest --cov=src --cov-report=html
+```
+
+## Adding a New Search Provider
 
 1. Create `src/tools/your_provider.py`:
 
 ```python
 from langchain_core.tools import tool
+from src.config import get_settings
 from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 @tool
 def your_search(query: str, max_results: int = 5) -> str:
-    """Your search tool description."""
-    # Implementation
-    pass
+    """Search description for the LLM."""
+    settings = get_settings()
+    # Your implementation
+    return formatted_results
 ```
 
 2. Register in `src/tools/registry.py`:
@@ -379,13 +403,13 @@ from src.tools.your_provider import your_search
 _TOOL_REGISTRY["your_search"] = your_search
 ```
 
-## Suggested Extensions
+## Tech Stack
 
-- **Conversational Memory** - Add chat history for follow-up questions
-- **Multi-Agent Collaboration** - Specialized agents for different research aspects
-- **Document Analysis** - Process PDFs and documents alongside web search
-- **Citation Management** - Export sources in various formats (BibTeX, APA)
-- **Research Templates** - Pre-defined templates for different research types
+- **Backend**: Python 3.10+, FastAPI, LangChain, LangGraph
+- **Frontend**: Next.js 14, React 18, Tailwind CSS
+- **AI**: OpenAI GPT-4o-mini (default), GPT-4o
+- **Search**: Tavily, SerpAPI, DuckDuckGo
+- **Deployment**: Docker, Railway, Render, Fly.io
 
 ## License
 
@@ -393,4 +417,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-Built with [LangChain](https://langchain.com), [LangGraph](https://langchain-ai.github.io/langgraph/), [OpenAI](https://openai.com), [CopilotKit](https://copilotkit.ai), and [AG-UI Protocol](https://github.com/ag-ui-protocol/ag-ui)
+**Repository**: [github.com/senisinsane/Research-Agent](https://github.com/senisinsane/Research-Agent)
+
+Built with [LangChain](https://langchain.com), [LangGraph](https://langchain-ai.github.io/langgraph/), and [OpenAI](https://openai.com)
