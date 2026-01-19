@@ -1,0 +1,44 @@
+# =============================================================================
+# Fly.io Deployment Configuration
+# =============================================================================
+# Deploy to Fly.io:
+# 1. Install flyctl: https://fly.io/docs/hands-on/install-flyctl/
+# 2. Run: fly launch
+# 3. Set secrets: fly secrets set OPENAI_API_KEY=sk-xxx TAVILY_API_KEY=tvly-xxx
+# 4. Deploy: fly deploy
+# =============================================================================
+
+app = "research-agent"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  OPENAI_MODEL = "gpt-4o-mini"
+  LOG_LEVEL = "INFO"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "10s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

@@ -1,0 +1,27 @@
+# =============================================================================
+# Render.com Deployment Configuration
+# =============================================================================
+# Deploy to Render: https://render.com
+# 1. Connect your GitHub repo
+# 2. Render will auto-detect this file
+# =============================================================================
+
+services:
+  - type: web
+    name: research-agent
+    runtime: python
+    buildCommand: pip install -r requirements.txt -r requirements-api.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in dashboard
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: SERPAPI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /health
+    autoDeploy: true
