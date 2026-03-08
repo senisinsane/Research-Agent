@@ -1,4 +1,4 @@
-# Web Research Agent 🔍
+# Web Research Agent
 
 A production-ready autonomous web research agent built with LangChain, LangGraph, and OpenAI. This agent accepts natural language research queries, intelligently breaks them into sub-questions, searches the web for current information, and synthesizes findings into professional, structured reports.
 
